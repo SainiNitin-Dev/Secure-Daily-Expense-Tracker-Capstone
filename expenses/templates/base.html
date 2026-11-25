@@ -1,0 +1,29 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Daily Expense Tracker{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'expenses/tracker.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="{% url 'expense_list' %}"><span class="brand-mark" aria-hidden="true">≡</span> Daily Expense Tracker</a>
+      {% if user.is_authenticated %}
+        <div class="account">
+          <span class="username">{{ user.get_username }}</span>
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button class="button signout" type="submit">Log out</button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+  </header>
+  <main class="{% block main_class %}page{% endblock %}">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

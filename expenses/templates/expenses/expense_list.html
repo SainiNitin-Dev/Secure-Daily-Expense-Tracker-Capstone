@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}My expenses | Daily Expense Tracker{% endblock %}
+{% block content %}
+  <div class="page-heading">
+    <h1>My expenses</h1>
+  </div>
+  <div class="dashboard">
+    <section class="panel add-panel" aria-labelledby="add-heading">
+      <h2 id="add-heading">Add expense</h2>
+      <form method="post" class="stack">
+        {% csrf_token %}
+        {{ form.as_div }}
+        <button class="button primary" type="submit">Add expense</button>
+      </form>
+    </section>
+    <section class="panel ledger" aria-labelledby="ledger-heading">
+      <div class="ledger-header">
+        <h2 id="ledger-heading">Expense history</h2>
+        <form method="get" class="filters">
+          {% for field in filters %}
+            <div>{{ field.label_tag }} {{ field }} {{ field.errors }}</div>
+          {% endfor %}
+          <button class="button secondary" type="submit">Filter</button>
+          {% if filters.is_bound %}<a class="clear" href="{% url 'expense_list' %}">Clear</a>{% endif %}
+        </form>
+      </div>
+      {% if expenses %}
+        <div class="table-wrap" tabindex="0" role="region" aria-label="Expenses table">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Category</th>
+                <th scope="col">Description</th>
+                <th scope="col" class="amount">Amount</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for expense in expenses %}
+                <tr>
+                  <td class="date">{{ expense.date|date:"Y-m-d" }}</td>
+                  <td><span class="category">{{ expense.get_category_display }}</span></td>
+                  <td class="description">{{ expense.description|default:"—" }}</td>
+                  <td class="amount">{{ expense.amount|floatformat:"2u" }}</td>
+                  <td>
+                    <form method="post" action="{% url 'expense_delete' expense.id %}">
+                      {% csrf_token %}
+                      <button class="button delete" type="submit" aria-label="Delete {{ expense.category }} expense on {{ expense.date|date:'Y-m-d' }}">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% elif filters.errors %}
+        <p class="empty">Correct the filter values to search your expenses.</p>
+      {% elif filters.is_bound %}
+        <p class="empty">No expenses match these filters.</p>
+      {% else %}
+        <p class="empty">Your saved expenses will appear here.</p>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}
