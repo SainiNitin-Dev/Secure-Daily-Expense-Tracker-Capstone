@@ -1,3 +1,4 @@
 {
+  "regions": ["sin1"],
   "buildCommand": "if [ \"$VERCEL_ENV\" = production ]; then DATABASE_URL=\"${DATABASE_URL_UNPOOLED:-$DATABASE_URL}\" python manage.py migrate --noinput; fi"
 }
