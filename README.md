@@ -44,4 +44,14 @@ Each record contains the submitted username and a timestamp.
 
 The routes are in `tracker/urls.py`, the form checks are in `expenses/forms.py`, and the save, list, and delete logic is in `expenses/views.py`.
 
-The default settings are for a local HTTP demo and generate a fresh signing key when the server restarts. Setting `DJANGO_DEBUG=0` requires `DJANGO_SECRET_KEY`. For an HTTPS deployment, also set `DJANGO_ALLOWED_HOSTS` to the deployment hostname. That mode enables HTTPS redirects and secure session and CSRF cookies.
+## Deploy to Vercel
+
+Vercel runs Django online and Neon stores the deployed app's users, sessions, and expenses. SQLite is available for running the app on your computer.
+
+1. Open the Vercel project's **Storage** tab and connect a **Neon Postgres** database to the **Production** environment. Verify that the integration added `DATABASE_URL` in **Settings → Environment Variables**.
+2. Add a production variable named `DJANGO_SECRET_KEY`. Generate its value locally with `.\.venv\Scripts\python.exe -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`.
+3. Enable **System Environment Variables** so Django can read the deployment hostname and use HTTPS settings. If you use an additional custom domain, add its hostname to `DJANGO_ALLOWED_HOSTS`.
+4. Deploy this revision to production with the project's Build Command override disabled. The repository's build command applies the Django migrations to Neon, using the direct connection when `DATABASE_URL_UNPOOLED` is available.
+5. Open the deployed URL and register an account. Add an expense, log out, then log back in to verify that the expense was saved.
+
+Production migrations run during the Vercel build. Preview deployments need their own connection and a migrated database if you want to use them. The local SQLite file is excluded from Git. Accounts and expenses created locally can be transferred separately if needed.
