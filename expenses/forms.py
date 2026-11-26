@@ -23,12 +23,20 @@ class ExpenseDateField(forms.DateField):
 class ExpenseForm(forms.ModelForm):
     date = ExpenseDateField()
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["category"].choices = [
+            ("", "Select one"), *Expense.Category.choices
+        ]
+
     class Meta:
         model = Expense
         fields = ["category", "amount", "date", "description"]
         widgets = {
-            "amount": forms.NumberInput(attrs={"min": "0.01", "step": "0.01", "placeholder": "0.00"}),
-            "description": forms.Textarea(attrs={"rows": 3, "placeholder": "What was it for?"}),
+            "amount": forms.NumberInput(
+                attrs={"min": "0.01", "step": "0.01", "placeholder": "0.00", "inputmode": "decimal"}
+            ),
+            "description": forms.Textarea(attrs={"rows": 3, "placeholder": "e.g. Coffee with a friend"}),
         }
 
     def clean_description(self):

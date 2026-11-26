@@ -1,14 +1,5 @@
-{% extends "base.html" %}
-{% block title %}Register | Daily Expense Tracker{% endblock %}
-{% block main_class %}auth-page{% endblock %}
-{% block content %}
-  <section class="panel auth-panel">
-    <h1>Create an account</h1>
-    <form method="post" class="stack">
-      {% csrf_token %}
-      {{ form.as_div }}
-      <button class="button primary" type="submit">Register</button>
-    </form>
-    <p class="auth-link">Already have an account? <a href="{% url 'login' %}">Log in</a></p>
-  </section>
-{% endblock %}
+{% extends "registration/auth_base.html" %}
+{% block title %}Create an account | Daymark{% endblock %}
+{% block auth_heading %}Create an account{% endblock %}
+{% block auth_submit %}Create account{% endblock %}
+{% block auth_link %}Already have an account? <a href="{% url 'login' %}">Log in</a>{% endblock %}

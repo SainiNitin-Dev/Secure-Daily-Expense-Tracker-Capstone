@@ -4,25 +4,34 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Daily Expense Tracker{% endblock %}</title>
+  <title>{% block title %}Daymark{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'expenses/tracker.css' %}">
+  <script src="{% static 'expenses/tracker.js' %}" defer></script>
 </head>
-<body>
-  <header class="site-header">
-    <div class="header-inner">
-      <a class="brand" href="{% url 'expense_list' %}"><span class="brand-mark" aria-hidden="true">≡</span> Daily Expense Tracker</a>
-      {% if user.is_authenticated %}
-        <div class="account">
-          <span class="username">{{ user.get_username }}</span>
-          <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button class="button signout" type="submit">Log out</button>
-          </form>
-        </div>
-      {% endif %}
-    </div>
-  </header>
-  <main class="{% block main_class %}page{% endblock %}">
+<body class="{% if user.is_authenticated %}workspace{% else %}guest{% endif %}">
+  <a class="skip-link" href="#main">Skip to content</a>
+  {% if user.is_authenticated %}
+    <aside class="sidebar">
+      <a class="brand" href="{% url 'expense_list' %}">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        Daymark
+      </a>
+      <nav aria-label="Workspace">
+        <a href="{% url 'expense_list' %}" aria-current="page"><span class="nav-icon" aria-hidden="true">▦</span> Overview</a>
+        <a href="#history"><span class="nav-icon" aria-hidden="true">☰</span> History</a>
+        <a href="#add-expense"><span class="nav-icon" aria-hidden="true">+</span> Add expense</a>
+      </nav>
+      <div class="account">
+        <span class="avatar" aria-hidden="true">{{ user.get_username|slice:":1"|upper }}</span>
+        <span class="username">{{ user.get_username }}</span>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="signout" type="submit">Log out</button>
+        </form>
+      </div>
+    </aside>
+  {% endif %}
+  <main id="main" class="{% block main_class %}page{% endblock %}" tabindex="-1">
     {% block content %}{% endblock %}
   </main>
 </body>

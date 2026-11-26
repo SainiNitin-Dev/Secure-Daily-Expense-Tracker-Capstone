@@ -1,52 +1,82 @@
 {% extends "base.html" %}
-{% block title %}My expenses | Daily Expense Tracker{% endblock %}
+{% block title %}Expense overview | Daymark{% endblock %}
 {% block content %}
-  <div class="page-heading">
-    <h1>My expenses</h1>
-  </div>
+  {% include "expenses/messages.html" %}
+  <header class="page-heading">
+    <div>
+      <p class="page-date">{% now "l, j F Y" %}</p>
+      <h1>Expense overview</h1>
+    </div>
+    <a href="#add-expense" class="button primary"><span aria-hidden="true">+</span> Add expense</a>
+  </header>
+
+  <section class="overview" aria-label="All-time spending summary">
+    <div class="summary-total">
+      <div class="summary-content">
+        <p>Total spent</p>
+        <strong>{{ total|floatformat:"2g" }}</strong>
+        <span>All time</span>
+      </div>
+    </div>
+    <div class="summary-card">
+      <span class="metric-mark" aria-hidden="true">≡</span>
+      <p>Expenses recorded</p>
+      <strong>{{ expense_count }}</strong>
+    </div>
+    <div class="summary-card">
+      <span class="metric-mark" aria-hidden="true">◔</span>
+      <p>Top category</p>
+      {% with top=categories.0 %}
+        <strong class="top-category">{% if top %}{{ top.category }}{% else %}—{% endif %}</strong>
+        {% if top %}<span class="metric-note">{{ top.share }}% of total spending</span>{% endif %}
+      {% endwith %}
+    </div>
+  </section>
+
   <div class="dashboard">
-    <section class="panel add-panel" aria-labelledby="add-heading">
-      <h2 id="add-heading">Add expense</h2>
-      <form method="post" class="stack">
-        {% csrf_token %}
-        {{ form.as_div }}
-        <button class="button primary" type="submit">Add expense</button>
-      </form>
-    </section>
-    <section class="panel ledger" aria-labelledby="ledger-heading">
+    <section class="panel ledger" id="history" aria-labelledby="ledger-heading">
       <div class="ledger-header">
-        <h2 id="ledger-heading">Expense history</h2>
-        <form method="get" class="filters">
+        <div class="section-heading">
+          <h2 id="ledger-heading">Expense history</h2>
+          {% if not filter_query and expense_count %}<span class="result-count">{{ expense_count }} {{ expense_count|pluralize:"entry,entries" }}</span>{% endif %}
+        </div>
+        <form method="get" action="{% url 'expense_list' %}#history" class="filters">
           {% for field in filters %}
-            <div>{{ field.label_tag }} {{ field }} {{ field.errors }}</div>
+            <div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>
           {% endfor %}
-          <button class="button secondary" type="submit">Filter</button>
-          {% if filters.is_bound %}<a class="clear" href="{% url 'expense_list' %}">Clear</a>{% endif %}
+          <div class="filter-actions">
+            <button class="button secondary" type="submit">Apply filters</button>
+            {% if filters.errors or filter_query %}<a class="button quiet" href="{% url 'expense_list' %}#history">Clear</a>{% endif %}
+          </div>
         </form>
       </div>
       {% if expenses %}
-        <div class="table-wrap" tabindex="0" role="region" aria-label="Expenses table">
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
+                <th scope="col">Expense</th>
                 <th scope="col">Date</th>
-                <th scope="col">Category</th>
-                <th scope="col">Description</th>
                 <th scope="col" class="amount">Amount</th>
-                <th scope="col">Action</th>
+                <th scope="col"><span class="visually-hidden">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               {% for expense in expenses %}
                 <tr>
-                  <td class="date">{{ expense.date|date:"Y-m-d" }}</td>
-                  <td><span class="category">{{ expense.get_category_display }}</span></td>
-                  <td class="description">{{ expense.description|default:"—" }}</td>
-                  <td class="amount">{{ expense.amount|floatformat:"2u" }}</td>
-                  <td>
-                    <form method="post" action="{% url 'expense_delete' expense.id %}">
+                  <td class="expense-details">
+                    <span class="category-dot category-{{ expense.category|lower }}" aria-hidden="true"></span>
+                    <div>
+                      <strong>{{ expense.get_category_display }}</strong>
+                      {% if expense.description %}<span class="description">{{ expense.description }}</span>{% endif %}
+                    </div>
+                  </td>
+                  <td class="date"><time datetime="{{ expense.date|date:'Y-m-d' }}">{{ expense.date|date:"j M Y" }}</time></td>
+                  <td class="amount">{{ expense.amount|floatformat:"2g" }}</td>
+                  <td class="row-action">
+                    <form method="post" action="{% url 'expense_delete' expense.id %}{% if filter_query %}?{{ filter_query }}{% endif %}" data-delete="{{ expense.get_category_display }} · {{ expense.amount|floatformat:'2g' }} · {{ expense.date|date:'j M Y' }}">
                       {% csrf_token %}
-                      <button class="button delete" type="submit" aria-label="Delete {{ expense.category }} expense on {{ expense.date|date:'Y-m-d' }}">Delete</button>
+                      <button class="button delete" type="submit" aria-label="Delete {{ expense.category }} expense of {{ expense.amount|floatformat:'2g' }} on {{ expense.date|date:'j M Y' }}">Delete</button>
                     </form>
                   </td>
                 </tr>
@@ -54,13 +84,66 @@
             </tbody>
           </table>
         </div>
-      {% elif filters.errors %}
-        <p class="empty">Correct the filter values to search your expenses.</p>
-      {% elif filters.is_bound %}
-        <p class="empty">No expenses match these filters.</p>
       {% else %}
-        <p class="empty">Your saved expenses will appear here.</p>
+        <div class="empty">
+          <span class="empty-mark" aria-hidden="true">≡</span>
+          {% if filters.errors %}
+            <h3>Check your filters</h3>
+            <p>Correct the highlighted values and try again.</p>
+          {% elif filter_query %}
+            <h3>No matching expenses</h3>
+            <p>Try a different date or category.</p>
+            <a class="button secondary" href="{% url 'expense_list' %}#history">Clear filters</a>
+          {% else %}
+            <h3>No expenses yet</h3>
+            <p>Add your first expense to start your history.</p>
+            <a class="button secondary" href="#add-expense">Add an expense</a>
+          {% endif %}
+        </div>
       {% endif %}
     </section>
+
+    <div class="dashboard-side">
+      <section class="panel add-panel" id="add-expense" aria-labelledby="add-heading" {% if form.errors %}data-invalid-form{% endif %}>
+        <h2 id="add-heading">Add an expense</h2>
+        <form method="post" action="{% url 'expense_list' %}" class="stack">
+          {% csrf_token %}
+          {{ form.non_field_errors }}
+          <div class="field">{{ form.amount.as_field_group }}</div>
+          <div class="form-pair">
+            <div class="field">{{ form.category.as_field_group }}</div>
+            <div class="field"{% if not form.is_bound %} data-today{% endif %}>{{ form.date.as_field_group }}</div>
+          </div>
+          <div class="field">
+            <label for="{{ form.description.id_for_label }}">Description <span class="optional">Optional</span></label>
+            {{ form.description }}{{ form.description.errors }}
+          </div>
+          <button class="button primary" type="submit">Save expense</button>
+        </form>
+      </section>
+
+      {% if categories %}
+        <section class="panel breakdown" aria-labelledby="breakdown-heading">
+          <h2 id="breakdown-heading">Spending by category</h2>
+          <ul class="breakdown-list">
+            {% for item in categories %}
+              <li>
+                <div><span>{{ item.category }}</span><strong>{{ item.total|floatformat:"2g" }}</strong></div>
+                <progress class="category-{{ item.category|lower }}" max="100" value="{{ item.share }}" aria-label="{{ item.category }} share of total spending">{{ item.share }}%</progress>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+    </div>
   </div>
+
+  <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-description">
+    <h2 id="delete-title">Delete this expense?</h2>
+    <p id="delete-description"></p>
+    <form method="dialog" class="dialog-actions">
+      <button class="button secondary" value="cancel" autofocus>Cancel</button>
+      <button class="button danger" value="delete">Delete expense</button>
+    </form>
+  </dialog>
 {% endblock %}

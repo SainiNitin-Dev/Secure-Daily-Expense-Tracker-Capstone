@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block main_class %}auth-layout{% endblock %}
+{% block content %}
+  <div class="auth-story">
+    <a class="brand" href="{% url 'login' %}">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      Daymark
+    </a>
+    <div class="auth-pattern" aria-hidden="true"></div>
+    <p>Daily expense tracker</p>
+  </div>
+  <section class="auth-content" aria-labelledby="auth-title">
+    <div class="auth-form">
+      {% include "expenses/messages.html" %}
+      <h1 id="auth-title">{% block auth_heading %}{% endblock %}</h1>
+      <form method="post" class="stack">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+          <div class="field">
+            {{ field.label_tag }}
+            {% if field.field.widget.input_type == "password" %}
+              <div class="password-field">
+                {{ field }}
+                <button class="password-toggle" type="button" aria-controls="{{ field.id_for_label }}" hidden>Show</button>
+              </div>
+            {% else %}
+              {{ field }}
+            {% endif %}
+            {% if field.help_text %}<div class="helptext" id="{{ field.id_for_label }}_helptext">{{ field.help_text }}</div>{% endif %}
+            {{ field.errors }}
+          </div>
+        {% endfor %}
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+        <button class="button primary" type="submit">{% block auth_submit %}{% endblock %}</button>
+      </form>
+      <p class="auth-link">{% block auth_link %}{% endblock %}</p>
+    </div>
+  </section>
+{% endblock %}

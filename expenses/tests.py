@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -66,10 +68,28 @@ class ExpenseTests(TestCase):
 
     def test_add_binds_the_expense_to_the_session_user(self):
         response = self.client.post(self.dashboard, {**self.input, "owner": self.bob.pk})
-        self.assertRedirects(response, self.dashboard)
+        self.assertRedirects(response, self.dashboard, fetch_redirect_response=False)
         expense = Expense.objects.get(category="Travel")
         self.assertEqual(expense.owner, self.alice)
         self.assertEqual(expense.description, "Bus ticket")
+        self.assertContains(self.client.get(self.dashboard), "Expense saved.")
+
+    def test_overview_is_private_and_remains_all_time_when_filtered(self):
+        self.client.post(self.dashboard, self.input)
+        response = self.client.get(self.dashboard, {"category": "Travel"})
+        self.assertEqual(response.context["expense_count"], 2)
+        self.assertEqual(response.context["total"], Decimal("22.00"))
+        self.assertEqual(
+            [(category["category"], category["share"]) for category in response.context["categories"]],
+            [("Food", 89), ("Travel", 11)],
+        )
+        self.assertNotContains(response, "Lunch receipt")
+
+    def test_delete_keeps_the_current_history_filters(self):
+        own_url = reverse("expense_delete", args=[self.alice_expense.pk])
+        response = self.client.post(f"{own_url}?category=Food")
+        self.assertRedirects(response, "/?category=Food#history")
+        self.assertFalse(Expense.objects.filter(pk=self.alice_expense.pk).exists())
 
     def test_list_and_filters_only_return_the_current_users_expenses(self):
         self.client.post(self.dashboard, self.input)
